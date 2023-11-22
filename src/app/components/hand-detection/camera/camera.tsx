@@ -1,11 +1,12 @@
 "use client";
 
 import { FC, useEffect } from "react";
-import {
-  detectPose,
-  initPoseDetection,
-} from "../pose-detection/pose-detection";
+// import {
+//   detectPose,
+//   initPoseDetection,
+// } from "../pose-detection/pose-detection";
 import { initCamera, useCameraState } from "./camera-store";
+import { detectObject, initObjectDetection } from '../object-detection/object-detection';
 
 interface ICamera {
   showCanvas: boolean;
@@ -17,11 +18,13 @@ export const Camera: FC<ICamera> = (props) => {
   useEffect(() => {
     const init = async () => {
       await initCamera();
-      await initPoseDetection();
+      // await initPoseDetection();
+      await initObjectDetection()
 
       const draw = () => {
         if (canvas.current) {
-          detectPose(canvas.current as HTMLCanvasElement);
+          // detectPose(canvas.current as HTMLCanvasElement);
+          detectObject(canvas.current as HTMLCanvasElement);
         }
         requestAnimationFrame(draw);
       };

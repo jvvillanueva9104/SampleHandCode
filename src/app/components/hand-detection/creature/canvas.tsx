@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
-import {
-  detectPose,
-  useBodyPoseState,
-  initPoseDetection,
-} from "../pose-detection/pose-detection";
+// import {
+//   detectPose,
+//   useBodyPoseState,
+//   initPoseDetection,
+// } from "../pose-detection/pose-detection";
 
 interface Mouse {
   x: number | false;

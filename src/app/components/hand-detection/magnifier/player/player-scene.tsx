@@ -1,10 +1,11 @@
 "use client";
 
-import { useBodyPoseState } from "../../pose-detection/pose-detection";
+// import { useBodyPoseState } from "../../pose-detection/pose-detection";
+import { useObjectState } from "../../object-detection/object-detection";
 import { PlayerPointer } from "./player-pointer";
 
 export const PlayerScene = () => {
-  const { pointers } = useBodyPoseState();
+  const { pointers } = useObjectState();
 
   const screenPointers = pointers.map((position, index) => {
     return (
