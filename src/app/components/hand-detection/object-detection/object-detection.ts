@@ -21,14 +21,12 @@ export const useObjectState = (): IObject => {
 
 export const initObjectDetection = async () => {
   try {
-    
     if (detector === null) {
       console.error('Object detector not initialized.');
       return;
     }
 
-    const loadedModel = await detector.loadModelAsync(modelPath);
-    console.log('loadedModel: ', loadedModel);
+    await detector.loadModelAsync(modelPath);
 
     console.log('Object detection model loaded successfully.');
   } catch (error) {
@@ -36,29 +34,68 @@ export const initObjectDetection = async () => {
   }
 };
 
-export const detectObject = async (canvas: HTMLCanvasElement) => {
-
+export const detectObject = async (canvas: HTMLCanvasElement, timeoutMilliseconds: number = 3000) => {
   if (detector) {
-    const predictions = await detector.executeAsync(canvas);
-    console.log('predictions: ', predictions);
+    try {
+      const predictions = await detector.executeAsync(canvas);
+      console.log('predictions: ', predictions);
 
-    objectState.pointers = [];
-    predictions.forEach((prediction: any, index: any) => {
-      const point = prediction.boundingBox;
-      if (point) {
-        objectState.pointers.push(scaleToScreen(point));
+      // Assuming predictions is an array with bounding boxes, probabilities, and class ids
+      const [boundingBoxes, probabilities, classIds] = predictions;
 
-        // Trigger custom events based on object position
-        const objectEvent = new CustomEvent('objectmove', {
-          detail: {
-            x: point.x,
-            y: point.y,
-          },
-        });
-        document.dispatchEvent(objectEvent);
-      }
-    });
+      const maxProbabilityIndex = probabilities.indexOf(Math.max(...probabilities));
+
+      objectState.pointers = [];
+
+      const boundingBox = boundingBoxes[maxProbabilityIndex];
+      const probability = probabilities[maxProbabilityIndex];
+      const classId = classIds[maxProbabilityIndex];
+
+      console.log('boundingBox: ', boundingBox);
+      console.log('probability: ', probability);
+      console.log('classId: ', classId);
+
+      // Assuming classId corresponds to the index of your classes or tags
+      const tagName = getTagNameFromClassId(classId); // Implement a function to map classId to tagName
+      console.log('tagName: ', tagName);
+
+      // Scale bounding box coordinates to screen
+      const scaledBoundingBox = {
+        x1: (window.innerWidth / videoSize.width) * boundingBox[0],
+        y1: (window.innerHeight / videoSize.height) * boundingBox[1],
+        x2: (window.innerWidth / videoSize.width) * boundingBox[2],
+        y2: (window.innerHeight / videoSize.height) * boundingBox[3],
+      };
+      console.log('scaledBoundingBox: ', scaledBoundingBox);
+
+      // Trigger custom events based on object position
+      const objectEvent = new CustomEvent('objectmove', {
+        detail: {
+          x: scaledBoundingBox.x1,
+          y: scaledBoundingBox.y1,
+          tagName: tagName,
+          probability: probability,
+          boundingBox: scaledBoundingBox,
+        },
+      });
+
+      console.log('objectEvent: ', objectEvent);
+
+      document.dispatchEvent(objectEvent);
+    } catch (error) {
+      console.error('Error detecting object:', error);
+    }
   }
+};
+
+const getTagNameFromClassId = (classId: number): string => {
+  const classMapping: Record<number, string> = {
+    0: 'angled',
+    1: 'non-angled',
+    // Add more mappings as needed
+  };
+
+  return classMapping[classId] || `Unknown_${classId}`;
 };
 
 const scaleToScreen = (pos: IPosition): IPosition => {
