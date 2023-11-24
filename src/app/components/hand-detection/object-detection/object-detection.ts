@@ -1,12 +1,13 @@
 import * as cvstfjs from '@microsoft/customvision-tfjs';
 import { proxy, useSnapshot } from 'valtio';
-import { IPosition } from '../../../common/models';
+// import { IPosition } from '../../../common/models';
 import { videoSize } from '../camera/camera-store';
+import { IPosition } from '../../../common/models';
 
 const modelPath = '/model.json';
 
 interface IObject {
-  pointers: Array<IPosition>;
+  pointers: Array<{ tagName: string; probability: number; boundingBox: any }>;
 }
 
 const objectState = proxy<IObject>({
@@ -40,20 +41,20 @@ export const detectObject = async (canvas: HTMLCanvasElement, timeoutMillisecond
       const predictions = await detector.executeAsync(canvas);
       console.log('predictions: ', predictions);
 
+      objectState.pointers = [];
+
       // Assuming predictions is an array with bounding boxes, probabilities, and class ids
       const [boundingBoxes, probabilities, classIds] = predictions;
 
       const maxProbabilityIndex = probabilities.indexOf(Math.max(...probabilities));
 
-      objectState.pointers = [];
-
       const boundingBox = boundingBoxes[maxProbabilityIndex];
       const probability = probabilities[maxProbabilityIndex];
       const classId = classIds[maxProbabilityIndex];
 
-      console.log('boundingBox: ', boundingBox);
+      // console.log('boundingBox: ', boundingBox);
       console.log('probability: ', probability);
-      console.log('classId: ', classId);
+      // console.log('classId: ', classId);
 
       // Assuming classId corresponds to the index of your classes or tags
       const tagName = getTagNameFromClassId(classId); // Implement a function to map classId to tagName
@@ -66,26 +67,35 @@ export const detectObject = async (canvas: HTMLCanvasElement, timeoutMillisecond
         x2: (window.innerWidth / videoSize.width) * boundingBox[2],
         y2: (window.innerHeight / videoSize.height) * boundingBox[3],
       };
-      console.log('scaledBoundingBox: ', scaledBoundingBox);
+      // console.log('scaledBoundingBox: ', scaledBoundingBox);
 
-      // Trigger custom events based on object position
-      const objectEvent = new CustomEvent('objectmove', {
-        detail: {
-          x: scaledBoundingBox.x1,
-          y: scaledBoundingBox.y1,
-          tagName: tagName,
-          probability: probability,
-          boundingBox: scaledBoundingBox,
-        },
-      });
+      // Update pointers in objectState
+      updatePointers(tagName, probability, scaledBoundingBox);
+      // console.log('objectState: ', objectState);
 
-      console.log('objectEvent: ', objectEvent);
+      
+      // Trigger custom events when tagName is angled and probability is greater than 0.8
+      if (tagName === 'angled' && probability > 0.8) {
+        const angledEvent = new CustomEvent('angledObject', {
+          detail: {
+            tagName: tagName,
+            probability: probability,
+            boundingBox: scaledBoundingBox,
+          },
+        });
 
-      document.dispatchEvent(objectEvent);
+        console.log('angledEvent: ', angledEvent);
+
+        document.dispatchEvent(angledEvent);
+      }
     } catch (error) {
       console.error('Error detecting object:', error);
     }
   }
+};
+
+export const updatePointers = (tagName: string, probability: number, boundingBox: any) => {
+  objectState.pointers.push({ tagName, probability, boundingBox });
 };
 
 const getTagNameFromClassId = (classId: number): string => {
@@ -98,9 +108,3 @@ const getTagNameFromClassId = (classId: number): string => {
   return classMapping[classId] || `Unknown_${classId}`;
 };
 
-const scaleToScreen = (pos: IPosition): IPosition => {
-  return {
-    x: (window.innerWidth / videoSize.width) * pos.x,
-    y: (window.innerHeight / videoSize.height) * pos.y,
-  };
-};

@@ -17,17 +17,23 @@ export default function SplineScene() {
       (event: any) => {
         const objectId = 'Watering Can';
         splineRef.current.emitEvent('mouseDown', objectId);
+        console.log('------mouseDown event emitted');
       },
-      1000,
+      100,
       { leading: true, trailing: false }
     );
 
     const checkAndAddListener = () => {
       const customPointer = document.querySelector('.playerPointer');
+      console.log('customPointer entered');
+      console.log('customPointer:', customPointer);
 
       if (customPointer) {
-        document.addEventListener('mousedown', handlePointerDown as EventListener);
+        document.addEventListener('angledObject', handlePointerDown as EventListener)
+        console.log('Event listener added');
         clearInterval(intervalId);
+      } else {
+        console.log('No pointers available');
       }
     };
 
@@ -36,7 +42,7 @@ export default function SplineScene() {
 
     return () => {
       clearInterval(intervalId);
-      document.removeEventListener('mousedown', handlePointerDown as EventListener);
+      document.removeEventListener('objectfound', handlePointerDown as EventListener);
     };
   }, []); /// Effect runs once on component mount
 
